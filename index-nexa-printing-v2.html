@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nexa Printing</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eee;font:10px Arial;color:#000}
+.app{max-width:900px;margin:20px auto;display:grid;grid-template-columns:330px 1fr;gap:20px}
+.panel{background:#fff;padding:16px;border-radius:8px;box-shadow:0 2px 10px #0001}
+h2{margin:0 0 12px;font-size:17px}label{display:block;font-weight:bold;margin:8px 0 4px}
+input,select,button{width:100%;padding:8px;border:1px solid #bbb;border-radius:4px;font:inherit}
+button{cursor:pointer;background:#111;color:#fff;border:0;font-weight:bold}
+.secondary{background:#777}.row{display:grid;grid-template-columns:1fr 90px 70px;gap:5px}
+.item{border:1px solid #ddd;padding:7px;margin-top:7px;border-radius:5px}.item button{margin-top:5px;background:#a00;padding:5px}
+#preview{background:#fff;width:58mm;min-height:80mm;margin:auto;padding:3.5mm;box-shadow:0 2px 12px #0002}
+.header{text-align:center}.shop{font-size:16px;font-weight:bold}.tagline{font-size:9px;font-weight:bold}
+.address{font-size:8px;line-height:1.25;margin-top:3px}.qrbox{border:1px solid #000;border-radius:3px;margin-top:8px;padding:6px;display:flex;align-items:center;gap:7px}
+.qrbox img{width:58px;height:58px}.qrtext{font-size:7.5px;line-height:1.25}.info{margin-top:8px;line-height:1.45}
+.info-row{display:grid;grid-template-columns:65px 7px 1fr}table{width:100%;border-collapse:collapse;margin-top:7px}
+th{border-bottom:1px solid #777;font-weight:normal;padding-bottom:3px;text-align:left}td{padding-top:4px;vertical-align:top}.r{text-align:right}
+.summary{text-align:right;margin-top:8px;line-height:1.45}.note{text-align:center;margin-top:10px;line-height:1.25}.footer{text-align:center;margin-top:12px;line-height:1.4}
+.digital{max-width:430px;margin:30px auto;background:#fff;padding:20px;box-shadow:0 2px 12px #0002}.digital h1{text-align:center;font-size:20px;margin:0}
+.digital .sub{text-align:center;font-size:10px;margin:3px 0 15px}.digital table td{padding:7px 2px;border-bottom:1px solid #ddd}
+.status{text-align:center;font-weight:bold;border:1px solid #000;padding:8px;margin:15px 0}
+@media(max-width:700px){.app{grid-template-columns:1fr;margin:10px}}
+@media print{body{background:#fff}.panel{display:none}.app{display:block;margin:0}#preview{box-shadow:none;margin:0;width:58mm;padding:3mm}@page{size:58mm auto;margin:0}}
+</style>
+</head>
+<body>
+<div id="digital" style="display:none"></div>
+
+<div class="app" id="kasir">
+<div class="panel">
+<h2>Input Nota Nexa Printing</h2>
+<label>No. Invoice</label><input id="invoice">
+<label>Tanggal</label><input id="tanggal" type="datetime-local">
+<label>Pelanggan</label><input id="pelanggan" placeholder="Nama pelanggan">
+<label>No. HP</label><input id="hp" placeholder="08xxxxxxxxxx">
+<label>Kasir</label><input id="kasir" value="Admin">
+<label>Pembayaran</label><select id="bayar"><option>Cash</option><option>Transfer</option></select>
+<label>Status Pembayaran</label><select id="ket"><option value="Belum Lunas">Belum Lunas</option><option value="DP">DP</option><option value="Lunas">Lunas</option></select>
+<label>Produk</label>
+<div class="row"><input id="produk" placeholder="Nama produk"><input id="harga" type="number" placeholder="Harga"><input id="qty" type="number" value="1" min="1"></div>
+<button style="margin-top:7px" onclick="tambahProduk()">+ Tambah Produk</button>
+<div id="daftar"></div>
+<label>Dibayar</label><input id="dibayar" type="number" value="0">
+<button style="margin-top:12px" onclick="window.print()">CETAK NOTA</button>
+<button style="margin-top:6px" onclick="shareNota()">📱 SHARE NOTA</button>
+<button style="margin-top:6px" onclick="copyLink()">🔗 COPY LINK NOTA</button>
+<button style="margin-top:6px" onclick="downloadNota()">⬇️ UNDUH JPG</button>
+<button class="secondary" style="margin-top:6px" onclick="resetNota()">RESET</button>
+</div>
+
+<div id="preview">
+<div class="header"><div class="shop">NEXA PRINTING</div><div class="tagline">PRINT • DESIGN • CETAK</div>
+<div class="address">Jl. Suka Karya, Pekanbaru<br>WA: 0851-8859-7733</div></div>
+<div class="qrbox"><img id="qr"><div class="qrtext">Scan QR-Code untuk membuka<br>Nota Digital & Status Pesanan</div></div>
+<div class="info">
+<div class="info-row"><span>No. Invoice</span><span>:</span><span id="pInvoice"></span></div>
+<div class="info-row"><span>Tanggal</span><span>:</span><span id="pTanggal"></span></div>
+<div class="info-row"><span>Pelanggan</span><span>:</span><span id="pPelanggan"></span></div>
+<div class="info-row"><span>No. HP</span><span>:</span><span id="pHp"></span></div>
+<div class="info-row"><span>Kasir</span><span>:</span><span id="pKasir"></span></div>
+<div class="info-row"><span>Bayar</span><span>:</span><span id="pBayar"></span></div>
+<div class="info-row"><span>Keterangan</span><span>:</span><span id="pKet"></span></div>
+</div>
+<table><thead><tr><th>Produk</th><th class="r">Harga</th><th class="r">Qty</th><th class="r">Total</th></tr></thead><tbody id="produkTable"></tbody></table>
+<div class="summary">Total : <b id="pTotal">Rp 0</b><br>Dibayar : <b id="pDibayar">Rp 0</b><br>Sisa : <b id="pSisa">Rp 0</b><br>Status : <b id="pStatus">BELUM LUNAS</b></div>
+<div class="note">*** Barang tidak diambil 2 minggu,<br>hilang tidak tanggung jawab kami ***</div>
+<div class="footer"><b>INFORMASI & KONFIRMASI PESANAN</b><br>HP : 0851-8859-7733</div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+const BASE="https://nexaprintingpku-lab.github.io/nexa-nota/";
+let items=[];
+const $=id=>document.getElementById(id),rupiah=n=>"Rp "+Number(n||0).toLocaleString("id-ID"),pad=n=>String(n).padStart(2,"0");
+function inv(){let d=new Date();return "NX"+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds())}
+function now(){let d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes())}
+function enc(o){return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
+function dec(s){s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";return JSON.parse(decodeURIComponent(escape(atob(s))))}
+
+function tambahProduk(){let nama=$("produk").value.trim(),harga=+$("harga").value,qty=+$("qty").value;
+if(!nama||!harga||!qty)return alert("Isi produk, harga, dan qty terlebih dahulu.");
+items.push({nama,harga,qty});$("produk").value="";$("harga").value="";$("qty").value=1;render()}
+function hapus(i){items.splice(i,1);render()}
+function updateInfo(){
+let t=$("tanggal").value,fmt=t;if(t){let d=new Date(t);fmt=pad(d.getDate())+"-"+pad(d.getMonth()+1)+"-"+d.getFullYear()+" "+pad(d.getHours())+":"+pad(d.getMinutes())}
+$("pInvoice").textContent=$("invoice").value;$("pTanggal").textContent=fmt;$("pPelanggan").textContent=$("pelanggan").value;$("pHp").textContent=$("hp").value;
+$("pKasir").textContent=$("kasir").value;$("pBayar").textContent=$("bayar").value;$("pKet").textContent=$("ket").value;
+let data={invoice:$("invoice").value,tanggal:fmt,pelanggan:$("pelanggan").value,hp:$("hp").value,kasir:$("kasir").value,bayar:$("bayar").value,ket:$("ket").value,items, dibayar:+$("dibayar").value||0};
+let url=BASE+"?nota="+enc(data);$("qr").src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data="+encodeURIComponent(url);
+}
+function render(){
+let d=$("daftar"),tb=$("produkTable");d.innerHTML="";tb.innerHTML="";let total=0;
+items.forEach((x,i)=>{let sub=x.harga*x.qty;total+=sub;
+d.innerHTML+=`<div class="item"><b>${x.nama}</b><br>${rupiah(x.harga)} × ${x.qty} = ${rupiah(sub)}<button onclick="hapus(${i})">Hapus</button></div>`;
+tb.innerHTML+=`<tr><td>${x.nama}</td><td class="r">${x.harga.toLocaleString("id-ID")}</td><td class="r">${x.qty}</td><td class="r">${sub.toLocaleString("id-ID")}</td></tr>`});
+let dib=+$("dibayar").value||0;
+let sisa=Math.max(0,total-dib);
+$("pTotal").textContent=rupiah(total);
+$("pDibayar").textContent=rupiah(dib);
+$("pSisa").textContent=rupiah(sisa);
+$("pStatus").textContent=$("ket").value.toUpperCase();
+updateInfo()}
+function getNotaData(){
+ let t=$("tanggal").value,fmt=t;
+ if(t){let d=new Date(t);fmt=pad(d.getDate())+"-"+pad(d.getMonth()+1)+"-"+d.getFullYear()+" "+pad(d.getHours())+":"+pad(d.getMinutes())}
+ return {
+   invoice:$("invoice").value,
+   tanggal:fmt,
+   pelanggan:$("pelanggan").value,
+   hp:$("hp").value,
+   kasir:$("kasir").value,
+   bayar:$("bayar").value,
+   ket:$("ket").value,
+   items:items,
+   dibayar:+$("dibayar").value||0
+ };
+}
+function getNotaLink(){
+ return BASE+"?nota="+enc(getNotaData());
+}
+async function copyLink(){
+ const link=getNotaLink();
+ try{
+   await navigator.clipboard.writeText(link);
+   alert("Link nota berhasil disalin. Tinggal paste ke WhatsApp pelanggan.");
+ }catch(e){
+   prompt("Salin link nota berikut:",link);
+ }
+}
+async function downloadNota(){
+ const target=document.getElementById("preview");
+ if(typeof html2canvas==="undefined"){
+   alert("Fitur JPG belum siap. Pastikan internet aktif lalu coba lagi.");
+   return;
+ }
+ const oldShadow=target.style.boxShadow;
+ target.style.boxShadow="none";
+ try{
+   const canvas=await html2canvas(target,{
+     scale:3,
+     backgroundColor:"#ffffff",
+     useCORS:true,
+     logging:false
+   });
+   const link=document.createElement("a");
+   link.download="Nota-"+$("invoice").value+".jpg";
+   link.href=canvas.toDataURL("image/jpeg",0.95);
+   link.click();
+ }catch(e){
+   alert("Gagal membuat JPG. Coba lagi.");
+ }finally{
+   target.style.boxShadow=oldShadow;
+ }
+}
+
+function shareNota(){
+ const data=getNotaData();
+ const link=getNotaLink();
+ const total=data.items.reduce((a,x)=>a+x.harga*x.qty,0);
+ const status=data.ket==="Lunas"?"LUNAS":(data.ket==="DP"?"DP":"BELUM LUNAS");
+ const pesan=`NEXA PRINTING
+Nota Digital
+No. Invoice: ${data.invoice}
+Pelanggan: ${data.pelanggan||"-"}
+Total: ${rupiah(total)}
+Dibayar: ${rupiah(data.dibayar)}
+Sisa: ${rupiah(Math.max(0,total-data.dibayar))}
+Status: ${status}
+
+Lihat nota digital:
+${link}`;
+ if(navigator.share){
+   navigator.share({title:"Nota Nexa Printing "+data.invoice,text:pesan}).catch(()=>{});
+ }else{
+   const wa="https://wa.me/?text="+encodeURIComponent(pesan);
+   window.open(wa,"_blank");
+ }
+}
+function resetNota(){items=[];$("invoice").value=inv();$("tanggal").value=now();$("pelanggan").value="";$("hp").value="";$("kasir").value="Admin";$("ket").value="Belum Lunas";$("dibayar").value=0;render()}
+document.querySelectorAll("#kasir input,#kasir select").forEach(e=>{e.addEventListener("input",render);e.addEventListener("change",render)});
+
+function tampilDigital(data){
+$("kasir").style.display="none";let total=data.items.reduce((a,x)=>a+x.harga*x.qty,0),kembali=Math.max(0,data.dibayar-total);
+let status=data.ket==="Lunas"?"LUNAS":(data.ket==="DP"?"DP":"BELUM LUNAS");
+$("digital").style.display="block";
+$("digital").innerHTML=`<div class="digital"><h1>NEXA PRINTING</h1><div class="sub">PRINT • DESIGN • CETAK<br>Jl. Suka Karya, Pekanbaru<br>WA: 0851-8859-7733</div>
+<div class="status">${status}</div><p><b>No. Invoice:</b> ${data.invoice}<br><b>Tanggal:</b> ${data.tanggal}<br><b>Pelanggan:</b> ${data.pelanggan||"-"}<br><b>No. HP:</b> ${data.hp||"-"}<br><b>Kasir:</b> ${data.kasir||"-"}<br><b>Pembayaran:</b> ${data.bayar}</p>
+<table><thead><tr><th>Produk</th><th class="r">Harga</th><th class="r">Qty</th><th class="r">Total</th></tr></thead><tbody>${data.items.map(x=>`<tr><td>${x.nama}</td><td class="r">${rupiah(x.harga)}</td><td class="r">${x.qty}</td><td class="r">${rupiah(x.harga*x.qty)}</td></tr>`).join("")}</tbody></table>
+<p style="text-align:right;line-height:1.7"><b>Total: ${rupiah(total)}</b><br>Dibayar: ${rupiah(data.dibayar)}<br>Sisa: ${rupiah(Math.max(0,total-data.dibayar))}<br>Status: <b>${status}</b></p>
+<p style="text-align:center;font-size:9px">*** Barang tidak diambil 2 minggu, hilang tidak tanggung jawab kami ***</p>
+<p style="text-align:center;font-size:10px"><b>INFORMASI & KONFIRMASI PESANAN</b><br>HP : 0851-8859-7733</p></div>`}
+(function(){let p=new URLSearchParams(location.search).get("nota");if(p){try{tampilDigital(dec(p))}catch(e){alert("Data nota tidak valid.")}}else{$("invoice").value=inv();$("tanggal").value=now();render()}})();
+</script>
+</body>
+</html>
